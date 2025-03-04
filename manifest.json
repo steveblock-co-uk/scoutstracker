@@ -1,0 +1,16 @@
+{
+  "name": "ScoutsTracker",
+  "description": "Enhancements for scoutstracker.ca",
+  "version": "0.0.0.1",
+  "manifest_version": 3,
+  "icons": {
+    "128": "scoutstracker_icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://scoutstracker.ca/*"],
+      "js": ["content_script.js"],
+      "css": ["content_script.css"]
+    }
+  ]
+}
