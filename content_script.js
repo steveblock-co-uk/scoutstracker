@@ -119,9 +119,13 @@ async function go() {
             levelToBadge.forEach((requirementIds, level) => {
                 const autocompletedRequirementIds = requirementIds.filter((requirementId) => {
                     const autocompletionRequirement = autocompletionRequirements.get(requirementId);
-                    return autocompletionRequirement &&
-                        talliesRaw[member.memberid]?.[autocompletionRequirement.tallyId]?.length >=
-                        autocompletionRequirement.requiredCount;
+                    if (!autocompletionRequirement) {
+                        return false;
+                    }
+                    const count = talliesRaw[member.memberid]?.[autocompletionRequirement.tallyId]
+                        ?.map((tally) => tally.count)
+                        ?.reduce((a, b) => a + b, 0);
+                    return count >= autocompletionRequirement.requiredCount;
                 });
                 oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).set(
                     level, requirementIds.difference(completedRequirementIds).difference(autocompletedRequirementIds));
