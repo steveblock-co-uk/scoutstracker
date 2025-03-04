@@ -1,8 +1,15 @@
 console.log("running test.js");
 
 const OAS_BADGE_GROUPS = {
-    trailskills: "Trail Skills",
+    verticalskills: "Vertical Skills",
+    sailingskills: "Sailing Skills",
     scoutcraftskills: "Scoutcraft Skills",
+    campingskills: "Camping Skills",
+    trailskills: "Trail Skills",
+    winterskills: "Winter Skills",
+    paddlingskills: "Paddling Skills",
+    aquaticskills: "Aquatic Skills",
+    emergencyskills: "Emergency Skills",
 };
 
 const OAS_MAX_LEVEL = 3;
@@ -60,22 +67,21 @@ async function go() {
         getSingletonData(db, "db-requirements"),
         getSingletonData(db, "db-tallies"),
     ]);
+    console.log(talliesRaw);
 
     // A map from requirement ID to tally ID and required count.
     const autocompletionRequirements = new Map();
     Object.values(requirementsRaw).forEach((requirement) => {
-        if (!requirement.autocompletion) {
-            return;
-        }
         const result = TALLY_REGEX.exec(requirement.autocompletion);
         if (result === null) {
-            throw Exception();
+            return;
         }
-        autocompletionRequirements[requirement.requirementid] = {
+        autocompletionRequirements.set(requirement.requirementid, {
             tallyId: result.groups.tallyId,
             requiredCount: result.groups.requiredCount,
-        };
+        });
     });
+    console.log(autocompletionRequirements);
 
     // A map from OAS badge group ID to a map from level to a Set of requirement IDs.
     console.log(requirementsRaw);
@@ -112,21 +118,21 @@ async function go() {
     const oasRequirementsNotCompleted = new Map();
     youthMembers.forEach((member) => {
         const completedRequirementIds = new Set(
-            Object.keys(completedRequirementsRaw[member.memberid] || {}));
+            Object.keys(completedRequirementsRaw[member.personid] || {}));
         oasRequirementsNotCompleted.set(member.memberid, new Map());
         oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
             oasRequirementsNotCompleted.get(member.memberid).set(oasBadgeGroupName, new Map());
             levelToBadge.forEach((requirementIds, level) => {
-                const autocompletedRequirementIds = requirementIds.filter((requirementId) => {
+                const autocompletedRequirementIds = new Set(requirementIds.values().filter((requirementId) => {
                     const autocompletionRequirement = autocompletionRequirements.get(requirementId);
                     if (!autocompletionRequirement) {
                         return false;
                     }
-                    const count = talliesRaw[member.memberid]?.[autocompletionRequirement.tallyId]
-                        ?.map((tally) => tally.count)
-                        ?.reduce((a, b) => a + b, 0);
+                    const count = talliesRaw[member.personid]?.[autocompletionRequirement.tallyId]?.list
+                        .map((tally) => tally.count)
+                        .reduce((a, b) => a + b, 0);
                     return count >= autocompletionRequirement.requiredCount;
-                });
+                }));
                 oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).set(
                     level, requirementIds.difference(completedRequirementIds).difference(autocompletedRequirementIds));
             });
@@ -148,7 +154,7 @@ async function go() {
     //tr1.appendChild(td("status"));  // all 1 for active cubs
     //tr1.appendChild(td("exitdate"));  // all -1 for active cubs, but weaker condition than status 1
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
-        const td1 = td(oasBadgeGroupName);
+        const td1 = td(OAS_BADGE_GROUPS[oasBadgeGroupName]);
         td1.colSpan = levelToBadge.values()
             .map((requirementIds) => requirementIds.size)
             .reduce((a, b) => a + b, 0);
