@@ -1,5 +1,5 @@
 // TODO
-// - Sort badges
+// - Handle sub-reqiurements, eg Sailing Skills 2.14
 // - fix widths
 // - borders
 // - lock row/column
@@ -21,6 +21,7 @@ const OAS_MAX_LEVEL = 3;
 const OAS_BADGE_ID_REGEX = /(?<groupId>[a-z]+)(?<level>[1-9])/;
 // Presumably the tally ID can differ from the requirement ID?
 const TALLY_REGEX = /tally:(?<tallyId>[a-z]+[1-9]\.[\da-z]+)-(?<requiredCount>\d+)/;
+const REQUIREMENT_REGEX = /(?<numericPart>\d+)(?<alphaPart>[a-z])?/;
 
 const RED_RGB = [255, 0, 0];
 const WHITE_RGB = [255, 255, 255];
@@ -65,6 +66,14 @@ function toRgb(x) {
     return "rgb(" + x.map((e) => Math.round(e)).join(", ") + ")";
 }
 
+function parseRequirement(requirement) {
+    const result = REQUIREMENT_REGEX.exec(requirement);
+    return {
+        numericPart: result.groups.numericPart,
+        alphaPart: result.groups.alphaPart,
+    };
+}
+
 async function go() {
     const db = await getDb();
     // These are JS Objects, not Maps.
@@ -75,6 +84,9 @@ async function go() {
         getSingletonData(db, "db-tallies"),
     ]);
     console.log(talliesRaw);
+
+    // We use the requirement ID as a unique identifier of the requirement but do not assume anything about its syntax,
+    // ie how it relates to the group ID, badge ID or requirement.
 
     // A map from requirement ID to tally ID and required count.
     const autocompletionRequirements = new Map();
@@ -92,7 +104,7 @@ async function go() {
 
     // A map from OAS badge group ID to a map from level to a Set of requirement IDs.
     console.log(requirementsRaw);
-    const oasRequirementsMap = new Map();
+    const oasRequirementsMapUnsorted = new Map();
     Object.values(requirementsRaw).forEach((requirement) => {
         const result = OAS_BADGE_ID_REGEX.exec(requirement.badgeid);
         if (result === null) {
@@ -104,9 +116,24 @@ async function go() {
             return;
         }
         getOrCreate(
-            getOrCreate(oasRequirementsMap, groupId, () => new Map()),
+            getOrCreate(oasRequirementsMapUnsorted, groupId, () => new Map()),
             level,
             () => new Set()).add(requirement.requirementid);
+    });
+    console.log(oasRequirementsMapUnsorted);
+    const oasRequirementsMap = new Map();
+    Array.from(oasRequirementsMapUnsorted.keys()).toSorted().forEach((groupId) => {
+        Array.from(oasRequirementsMapUnsorted.get(groupId).keys()).toSorted().forEach((level) => {
+            getOrCreate(oasRequirementsMap, groupId, () => new Map())
+                .set(level, new Set(Array.from(oasRequirementsMapUnsorted.get(groupId).get(level)).toSorted((a, b) => {
+                    const aParts = parseRequirement(requirementsRaw[a].requirement);
+                    const bParts = parseRequirement(requirementsRaw[b].requirement);
+                    if (aParts.numericPart === bParts.numericPart) {
+                        return aParts.alphaPart.localeCompare(bParts.alphaPart);
+                    }
+                    return aParts.numericPart - bParts.numericPart;
+                })));
+        });
     });
     console.log(oasRequirementsMap);
 
