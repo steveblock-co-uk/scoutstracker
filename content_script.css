@@ -9,3 +9,15 @@ table.oas td {
     width: 20px;
     text-align: center;
 }
+
+table.oas td.completed {
+    background-color: mediumseagreen;
+}
+
+table.oas td.all-completed {
+    background-color: forestgreen;
+}
+
+table.oas td.sole-remaining {
+    background-color: pink;
+}

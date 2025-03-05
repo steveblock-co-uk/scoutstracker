@@ -1,4 +1,8 @@
-console.log("running test.js");
+// TODO
+// - Sort badges
+// - fix widths
+// - borders
+// - lock row/column
 
 const OAS_BADGE_GROUPS = {
     verticalskills: "Vertical Skills",
@@ -17,6 +21,9 @@ const OAS_MAX_LEVEL = 3;
 const OAS_BADGE_ID_REGEX = /(?<groupId>[a-z]+)(?<level>[1-9])/;
 // Presumably the tally ID can differ from the requirement ID?
 const TALLY_REGEX = /tally:(?<tallyId>[a-z]+[1-9]\.[\da-z]+)-(?<requiredCount>\d+)/;
+
+const RED_RGB = [255, 0, 0];
+const WHITE_RGB = [255, 255, 255];
 
 function td(x) {
     let td = document.createElement("td");
@@ -187,15 +194,17 @@ async function go() {
     table.appendChild(requirementRow);
 
     let potentialRow = document.createElement("tr");
-    potentialRow.appendChild(td("Potential"));
+    const potentialTd = td("Potential");
+    potentialTd.title = "The number of Cubs that have not completed this requirement";
+    potentialRow.appendChild(potentialTd);
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         levelToBadge.forEach((requirementIds, level) => {
             requirementIds.forEach((requirementId) => {
                 const count = youthMembers
                     .filter((member) => oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).get(level).has(requirementId))
                     .length;
-                const x = td(count);
-                x.style.setProperty("background-color", toRgb(interpolate([255, 255, 255], [0, 0, 255], count / youthMembers.length)));
+                const x = td(count > 0 ? count : "");
+                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, RED_RGB, count / youthMembers.length)));
                 potentialRow.appendChild(x);
             });
         });
@@ -203,7 +212,9 @@ async function go() {
     table.appendChild(potentialRow);
 
     let rewardRow = document.createElement("tr");
-    rewardRow.appendChild(td("Reward"));
+    const rewardTd =td("Reward");
+    rewardTd.title = "The number of Cubs that will complete this OAS level if they complete this requirement"
+    rewardRow.appendChild(rewardTd);
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         levelToBadge.forEach((requirementIds, level) => {
             requirementIds.forEach((requirementId) => {
@@ -211,8 +222,8 @@ async function go() {
                     .filter((member) => oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).get(level).size === 1)
                     .filter((member) => oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).get(level).has(requirementId))
                     .length;
-                const x = td(count);
-                x.style.setProperty("background-color", toRgb(interpolate([255, 255, 255], [0, 0, 255], count / youthMembers.length)));
+                const x = td(count > 0 ? count : "");
+                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, RED_RGB, 6 * count / youthMembers.length)));
                 rewardRow.appendChild(x);
             });
         });
@@ -232,7 +243,16 @@ async function go() {
         oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
             levelToBadge.forEach((requirementIds, level) => {
                 requirementIds.forEach((requirementId) => {
-                    tr.appendChild(td(oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).get(level).has(requirementId) ? "" : "X"));
+                    const x = document.createElement("td");
+                    const notCompleted = oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).get(level);
+                    if (notCompleted.size === 0) {
+                        x.className = "all-completed";
+                    } else if (!notCompleted.has(requirementId)) {
+                        x.className = "completed";
+                    } else if (notCompleted.size === 1) {
+                        x.className = "sole-remaining";
+                    }
+                    tr.appendChild(x);
                 });
             });
         });
@@ -242,8 +262,9 @@ async function go() {
     setTimeout(() => {
         console.log("clearing");
         document.getElementById("startpage").className = "";
+        document.body.style.setProperty("overflow-x", "auto");
         document.body.style.setProperty("overflow-y", "auto");
-    }, 5_000);
+    }, 6_000);
 }
 
 go();
