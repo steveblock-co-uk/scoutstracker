@@ -3,6 +3,7 @@
 // - borders
 // - lock row/column
 // - Add to reports page as link
+// - switch from member ID to person ID as key?
 
 const OAS_BADGE_GROUPS = {
     verticalskills: "Vertical Skills",
@@ -23,7 +24,6 @@ const OAS_BADGE_ID_REGEX = /(?<groupId>[a-z]+)(?<level>[1-9])/;
 // ie how it relates to the group ID, badge ID or requirement.
 // Presumably the tally ID can differ from the requirement ID?
 const TALLY_REGEX = /tally:(?<tallyId>[a-z\d\.]+)-(?<requiredCount>\d+)/;
-const REQUIREMENT_REGEX = /(?<numericPart>\d+)(?<alphaPart>[a-z])?/;
 const SUB_REQUIREMENT_REGEX = /requirement:(?<requirementId>[a-z\d\.]+)/g
 
 const RED_RGB = [255, 0, 0];
@@ -82,10 +82,17 @@ function getRequirementDescription(requirementId, requirementsRaw) {
     if (subRequirementIds.length === 0) {
         return requirement.description;
     }
-    console.log("Building sub-requirement description for " + requirementId);
     return requirement.description + subRequirementIds
         .map((subRequirementId) => requirementsRaw[subRequirementId].description)
         .join(" ");
+}
+
+function getName(member) {
+    return member.firstname + " " + member.lastname;
+}
+
+function flatValues(map) {
+    return Array.from(map.values()).flat();
 }
 
 async function go() {
@@ -124,7 +131,7 @@ async function go() {
     console.log("subRequirementIds");
     console.log(subRequirementIds);
 
-    // A map from OAS badge group ID to a map from level to a Set of requirement IDs.
+    // A map from OAS badge group ID to a map from level to an array of requirement IDs.
     console.log("requirementsRaw");
     console.log(requirementsRaw);
     const oasRequirementsMapUnsorted = new Map();
@@ -144,53 +151,71 @@ async function go() {
         getOrCreate(
             getOrCreate(oasRequirementsMapUnsorted, groupId, () => new Map()),
             level,
-            () => new Set()).add(requirement.requirementid);
+            () => []).push(requirement.requirementid);
     });
     console.log("oasRequirementsMapUnsorted");
     console.log(oasRequirementsMapUnsorted);
+
+    // A map from OAS badge group ID to a map from level to a sorted Set of requirement IDs.
     const oasRequirementsMap = new Map();
     Array.from(oasRequirementsMapUnsorted.keys()).toSorted().forEach((groupId) => {
         Array.from(oasRequirementsMapUnsorted.get(groupId).keys()).toSorted().forEach((level) => {
             getOrCreate(oasRequirementsMap, groupId, () => new Map())
-                .set(level, new Set(Array.from(oasRequirementsMapUnsorted.get(groupId).get(level)).toSorted(
+                .set(level, new Set(oasRequirementsMapUnsorted.get(groupId).get(level).toSorted(
                     (a, b) => requirementsRaw[a].requirement - requirementsRaw[b].requirement)));
         });
     });
     console.log("oasRequirementsMap");
     console.log(oasRequirementsMap);
 
-    // A list of members.
-    const youthMembers = Object.values(membersRaw)
+    // A Map from year to an array of member IDs.
+    const youthMemberIdsMapUnsorted = new Map();
+    Object.values(membersRaw)
         .filter((member) => true &&
             member.isnonparticipant === 0 &&
             member.membershiptype === 1 &&
             member.role === 10 &&
             member.status === 1 &&
-            true);
-    console.log("youthMembers");
-    console.log(youthMembers);
+            true)
+        .forEach((member) => {
+            getOrCreate(youthMemberIdsMapUnsorted, member.label, () => []).push(member.memberid);
+        });
+    console.log("youthMemberIdsMapUnsorted");
+    console.log(youthMemberIdsMapUnsorted);
+
+    // A Map from year to an array of member IDs.
+    const youthMemberIdsMap = new Map();
+    Array.from(youthMemberIdsMapUnsorted.keys()).toSorted((a, b) => b - a).forEach((year) => {
+        youthMemberIdsMap.set(year, youthMemberIdsMapUnsorted.get(year).toSorted(
+            (a, b) => getName(membersRaw[a]).localeCompare(getName(membersRaw[b]))));
+    });
+    console.log("youthMemberIdsMap");
+    console.log(youthMemberIdsMap);
+
+    const youthMemberIds = flatValues(youthMemberIdsMap);
 
     // A map from member ID to a map from OAS group ID to a map from level to a set of IDs of requirements not
     // completed.
     const oasRequirementsNotCompleted = new Map();
-    youthMembers.forEach((member) => {
+    youthMemberIds.forEach((memberId) => {
+        const personId = membersRaw[memberId].personid;
         const completedRequirementIds = new Set(
-            Object.keys(completedRequirementsRaw[member.personid] || {}));
-        oasRequirementsNotCompleted.set(member.memberid, new Map());
+            Object.keys(completedRequirementsRaw[personId] || {}));
+        oasRequirementsNotCompleted.set(memberId, new Map());
         oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
-            oasRequirementsNotCompleted.get(member.memberid).set(oasBadgeGroupName, new Map());
+            oasRequirementsNotCompleted.get(memberId).set(oasBadgeGroupName, new Map());
             levelToBadge.forEach((requirementIds, level) => {
                 const autocompletedRequirementIds = new Set(requirementIds.values().filter((requirementId) => {
                     const autocompletionRequirement = autocompletionRequirements.get(requirementId);
                     if (!autocompletionRequirement) {
                         return false;
                     }
-                    const count = talliesRaw[member.personid]?.[autocompletionRequirement.tallyId]?.list
+                    const count = talliesRaw[personId]?.[autocompletionRequirement.tallyId]?.list
                         .map((tally) => tally.count)
                         .reduce((a, b) => a + b, 0);
                     return count >= autocompletionRequirement.requiredCount;
                 }));
-                oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).set(
+                oasRequirementsNotCompleted.get(memberId).get(oasBadgeGroupName).set(
                     level, requirementIds.difference(completedRequirementIds).difference(autocompletedRequirementIds));
             });
         });
@@ -198,11 +223,11 @@ async function go() {
     console.log("oasRequirementsNotCompleted");
     console.log(oasRequirementsNotCompleted);
 
-    let table = document.createElement("table");
+    const table = document.createElement("table");
     table.className = "oas";
-    document.body.appendChild(table);
+    const oasSkillsRowGroup = document.createElement("tbody");
 
-    let badgeGroupNameRow = document.createElement("tr");
+    const badgeGroupNameRow = document.createElement("tr");
     badgeGroupNameRow.appendChild(td(""));  // Name
     //tr1.appendChild(td("isnonparticipant"));  // all 0 for active cubs (almost everyone)
     //tr1.appendChild(td("membershiptype"));  // all 1 for active cubs
@@ -218,9 +243,9 @@ async function go() {
             .reduce((a, b) => a + b, 0);
         badgeGroupNameRow.appendChild(td1)
     });
-    table.appendChild(badgeGroupNameRow);
+    oasSkillsRowGroup.appendChild(badgeGroupNameRow);
 
-    let levelRow = document.createElement("tr");
+    const levelRow = document.createElement("tr");
     levelRow.appendChild(td("")); // Name
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         levelToBadge.forEach((requirementIds, level) => {
@@ -229,9 +254,9 @@ async function go() {
             levelRow.appendChild(tdx);
         });
     });
-    table.appendChild(levelRow);
+    oasSkillsRowGroup.appendChild(levelRow);
 
-    let requirementRow = document.createElement("tr");
+    const requirementRow = document.createElement("tr");
     requirementRow.appendChild(td("")); // Name
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         levelToBadge.forEach((requirementIds, level) => {
@@ -242,7 +267,10 @@ async function go() {
             });
         });
     });
-    table.appendChild(requirementRow);
+    oasSkillsRowGroup.appendChild(requirementRow);
+    table.appendChild(oasSkillsRowGroup);
+
+    const summaryRowGroup = document.createElement("tbody");
 
     let potentialRow = document.createElement("tr");
     const potentialTd = td("Potential");
@@ -251,16 +279,16 @@ async function go() {
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         levelToBadge.forEach((requirementIds, level) => {
             requirementIds.forEach((requirementId) => {
-                const count = youthMembers
-                    .filter((member) => oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).get(level).has(requirementId))
+                const count = youthMemberIds
+                    .filter((memberId) => oasRequirementsNotCompleted.get(memberId).get(oasBadgeGroupName).get(level).has(requirementId))
                     .length;
                 const x = td(count > 0 ? count : "");
-                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, RED_RGB, count / youthMembers.length)));
+                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, RED_RGB, count / youthMemberIds.length)));
                 potentialRow.appendChild(x);
             });
         });
     });
-    table.appendChild(potentialRow);
+    summaryRowGroup.appendChild(potentialRow);
 
     let rewardRow = document.createElement("tr");
     const rewardTd =td("Reward");
@@ -269,46 +297,53 @@ async function go() {
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         levelToBadge.forEach((requirementIds, level) => {
             requirementIds.forEach((requirementId) => {
-                const count = youthMembers
-                    .filter((member) => oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).get(level).size === 1)
-                    .filter((member) => oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).get(level).has(requirementId))
+                const count = youthMemberIds
+                    .filter((memberId) => oasRequirementsNotCompleted.get(memberId).get(oasBadgeGroupName).get(level).size === 1)
+                    .filter((memberId) => oasRequirementsNotCompleted.get(memberId).get(oasBadgeGroupName).get(level).has(requirementId))
                     .length;
                 const x = td(count > 0 ? count : "");
-                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, RED_RGB, 6 * count / youthMembers.length)));
+                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, RED_RGB, 6 * count / youthMemberIds.length)));
                 rewardRow.appendChild(x);
             });
         });
     });
-    table.appendChild(rewardRow);
+    summaryRowGroup.appendChild(rewardRow);
+    table.appendChild(summaryRowGroup);
 
-    youthMembers.forEach((member) => {
-        let tr = document.createElement("tr");
-        tr.appendChild(td(member.firstname + " " + member.lastname));
-        //tr.appendChild(td(data[memberId].isnonparticipant));
-        //tr.appendChild(td(data[memberId].membershiptype));
-        //tr.appendChild(td(data[memberId].patrolid));
-        //tr.appendChild(td(data[memberId].programid));
-        //tr.appendChild(td(data[memberId].role));
-        //tr.appendChild(td(data[memberId].status));
-        //tr.appendChild(td(data[memberId].exitdate));
-        oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
-            levelToBadge.forEach((requirementIds, level) => {
-                requirementIds.forEach((requirementId) => {
-                    const x = document.createElement("td");
-                    const notCompleted = oasRequirementsNotCompleted.get(member.memberid).get(oasBadgeGroupName).get(level);
-                    if (notCompleted.size === 0) {
-                        x.className = "all-completed";
-                    } else if (!notCompleted.has(requirementId)) {
-                        x.className = "completed";
-                    } else if (notCompleted.size === 1) {
-                        x.className = "sole-remaining";
-                    }
-                    tr.appendChild(x);
+    Array.from(youthMemberIdsMap.keys()).forEach((year) => {
+        const yearRowGroup = document.createElement("tbody");
+        youthMemberIdsMap.get(year).forEach((memberId) => {
+            let tr = document.createElement("tr");
+            tr.appendChild(td(getName(membersRaw[memberId])));
+            //tr.appendChild(td(data[memberId].isnonparticipant));
+            //tr.appendChild(td(data[memberId].membershiptype));
+            //tr.appendChild(td(data[memberId].patrolid));
+            //tr.appendChild(td(data[memberId].programid));
+            //tr.appendChild(td(data[memberId].role));
+            //tr.appendChild(td(data[memberId].status));
+            //tr.appendChild(td(data[memberId].exitdate));
+            oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
+                levelToBadge.forEach((requirementIds, level) => {
+                    requirementIds.forEach((requirementId) => {
+                        const x = document.createElement("td");
+                        const notCompleted = oasRequirementsNotCompleted.get(memberId).get(oasBadgeGroupName).get(level);
+                        if (notCompleted.size === 0) {
+                            x.className = "all-completed";
+                        } else if (!notCompleted.has(requirementId)) {
+                            x.className = "completed";
+                        } else if (notCompleted.size === 1) {
+                            x.className = "sole-remaining";
+                        }
+                        tr.appendChild(x);
+                    });
                 });
             });
+            yearRowGroup.appendChild(tr);
         });
-        table.appendChild(tr);
+        table.appendChild(yearRowGroup);
     });
+
+    document.body.appendChild(table);
 
     setTimeout(() => {
         console.log("clearing");
