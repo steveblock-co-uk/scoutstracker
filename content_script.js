@@ -1,6 +1,5 @@
 // TODO
 // - fix widths
-// - borders
 // - lock row/column
 // - Add to reports page as link
 // - switch from member ID to person ID as key?
@@ -91,8 +90,10 @@ function getName(member) {
     return member.firstname + " " + member.lastname;
 }
 
-function flatValues(map) {
-    return Array.from(map.values()).flat();
+function colgroup(span) {
+    const x = document.createElement("colgroup");
+    x.span = span;
+    return x;
 }
 
 async function go() {
@@ -192,7 +193,7 @@ async function go() {
     console.log("youthMemberIdsMap");
     console.log(youthMemberIdsMap);
 
-    const youthMemberIds = flatValues(youthMemberIdsMap);
+    const youthMemberIds = Array.from(youthMemberIdsMap.values()).flat();
 
     // A map from member ID to a map from OAS group ID to a map from level to a set of IDs of requirements not
     // completed.
@@ -225,17 +226,18 @@ async function go() {
 
     const table = document.createElement("table");
     table.className = "oas";
+
+    table.appendChild(colgroup(1));  // Name
+    oasRequirementsMap.forEach((levelToBadge) => {
+        levelToBadge.forEach((requirementIds) => {
+            table.appendChild(colgroup(requirementIds.size));
+        });
+    });
+
     const oasSkillsRowGroup = document.createElement("tbody");
 
     const badgeGroupNameRow = document.createElement("tr");
     badgeGroupNameRow.appendChild(td(""));  // Name
-    //tr1.appendChild(td("isnonparticipant"));  // all 0 for active cubs (almost everyone)
-    //tr1.appendChild(td("membershiptype"));  // all 1 for active cubs
-    //tr1.appendChild(td("patrolid"));  // positive for all active cubs but not good to rely on
-    //tr1.appendChild(td("programid"));  // varies for active cubs
-    //tr1.appendChild(td("role")); //all 10 for active cubs. seems to be 1:1 with membershiptype 1
-    //tr1.appendChild(td("status"));  // all 1 for active cubs
-    //tr1.appendChild(td("exitdate"));  // all -1 for active cubs, but weaker condition than status 1
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         const td1 = td(OAS_BADGE_GROUPS[oasBadgeGroupName]);
         td1.colSpan = levelToBadge.values()
@@ -247,7 +249,7 @@ async function go() {
 
     const levelRow = document.createElement("tr");
     levelRow.appendChild(td("")); // Name
-    oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
+    oasRequirementsMap.forEach((levelToBadge) => {
         levelToBadge.forEach((requirementIds, level) => {
             const tdx = td(level);
             tdx.colSpan = requirementIds.size;
@@ -258,8 +260,8 @@ async function go() {
 
     const requirementRow = document.createElement("tr");
     requirementRow.appendChild(td("")); // Name
-    oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
-        levelToBadge.forEach((requirementIds, level) => {
+    oasRequirementsMap.forEach((levelToBadge) => {
+        levelToBadge.forEach((requirementIds) => {
             requirementIds.forEach((requirementId) => {
                 const x = td(requirementsRaw[requirementId].requirement);
                 x.title = getRequirementDescription(requirementId, requirementsRaw);
@@ -310,18 +312,11 @@ async function go() {
     summaryRowGroup.appendChild(rewardRow);
     table.appendChild(summaryRowGroup);
 
-    Array.from(youthMemberIdsMap.keys()).forEach((year) => {
+    youthMemberIdsMap.forEach((memberIds, year) => {
         const yearRowGroup = document.createElement("tbody");
-        youthMemberIdsMap.get(year).forEach((memberId) => {
+        memberIds.forEach((memberId) => {
             let tr = document.createElement("tr");
             tr.appendChild(td(getName(membersRaw[memberId])));
-            //tr.appendChild(td(data[memberId].isnonparticipant));
-            //tr.appendChild(td(data[memberId].membershiptype));
-            //tr.appendChild(td(data[memberId].patrolid));
-            //tr.appendChild(td(data[memberId].programid));
-            //tr.appendChild(td(data[memberId].role));
-            //tr.appendChild(td(data[memberId].status));
-            //tr.appendChild(td(data[memberId].exitdate));
             oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
                 levelToBadge.forEach((requirementIds, level) => {
                     requirementIds.forEach((requirementId) => {
