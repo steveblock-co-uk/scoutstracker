@@ -19,13 +19,13 @@ table.oas td {
 }
 
 table.oas td.completed {
-    background-color: mediumseagreen;
+    background-color: rgb(215, 227, 200);
 }
 
 table.oas td.all-completed {
-    background-color: forestgreen;
+    background-color: rgb(190, 210, 170);
 }
 
 table.oas td.sole-remaining {
-    background-color: pink;
+    background-color: rgb(76, 146, 186);
 }

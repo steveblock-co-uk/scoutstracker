@@ -25,7 +25,7 @@ const OAS_BADGE_ID_REGEX = /(?<groupId>[a-z]+)(?<level>[1-9])/;
 const TALLY_REGEX = /tally:(?<tallyId>[a-z\d\.]+)-(?<requiredCount>\d+)/;
 const SUB_REQUIREMENT_REGEX = /requirement:(?<requirementId>[a-z\d\.]+)/g
 
-const RED_RGB = [255, 0, 0];
+const HIGHLIGHT_RGB = [76, 146, 186];
 const WHITE_RGB = [255, 255, 255];
 
 function td(x) {
@@ -285,7 +285,7 @@ async function go() {
                     .filter((memberId) => oasRequirementsNotCompleted.get(memberId).get(oasBadgeGroupName).get(level).has(requirementId))
                     .length;
                 const x = td(count > 0 ? count : "");
-                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, RED_RGB, count / youthMemberIds.length)));
+                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, HIGHLIGHT_RGB, count / youthMemberIds.length)));
                 potentialRow.appendChild(x);
             });
         });
@@ -304,7 +304,7 @@ async function go() {
                     .filter((memberId) => oasRequirementsNotCompleted.get(memberId).get(oasBadgeGroupName).get(level).has(requirementId))
                     .length;
                 const x = td(count > 0 ? count : "");
-                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, RED_RGB, 6 * count / youthMemberIds.length)));
+                x.style.setProperty("background-color", toRgb(interpolate(WHITE_RGB, HIGHLIGHT_RGB, 6 * count / youthMemberIds.length)));
                 rewardRow.appendChild(x);
             });
         });
