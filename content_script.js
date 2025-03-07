@@ -1,8 +1,8 @@
 // TODO
-// - Handle sub-reqiurements, eg Sailing Skills 2.14
 // - fix widths
 // - borders
 // - lock row/column
+// - Add to reports page as link
 
 const OAS_BADGE_GROUPS = {
     verticalskills: "Vertical Skills",
@@ -19,9 +19,12 @@ const OAS_BADGE_GROUPS = {
 const OAS_MAX_LEVEL = 3;
 
 const OAS_BADGE_ID_REGEX = /(?<groupId>[a-z]+)(?<level>[1-9])/;
+// We use the requirement ID as a unique identifier of the requirement but do not assume anything about its syntax,
+// ie how it relates to the group ID, badge ID or requirement.
 // Presumably the tally ID can differ from the requirement ID?
-const TALLY_REGEX = /tally:(?<tallyId>[a-z]+[1-9]\.[\da-z]+)-(?<requiredCount>\d+)/;
+const TALLY_REGEX = /tally:(?<tallyId>[a-z\d\.]+)-(?<requiredCount>\d+)/;
 const REQUIREMENT_REGEX = /(?<numericPart>\d+)(?<alphaPart>[a-z])?/;
+const SUB_REQUIREMENT_REGEX = /requirement:(?<requirementId>[a-z\d\.]+)/g
 
 const RED_RGB = [255, 0, 0];
 const WHITE_RGB = [255, 255, 255];
@@ -66,12 +69,23 @@ function toRgb(x) {
     return "rgb(" + x.map((e) => Math.round(e)).join(", ") + ")";
 }
 
-function parseRequirement(requirement) {
-    const result = REQUIREMENT_REGEX.exec(requirement);
-    return {
-        numericPart: result.groups.numericPart,
-        alphaPart: result.groups.alphaPart,
-    };
+function getSubRequirementIds(requirement) {
+    // It seems the descriptions include whether the subrequirements are disjunctions or conjunctions, we don't need to
+    // worry about this here.
+    const result = requirement.subreqlogic.matchAll(SUB_REQUIREMENT_REGEX);
+    return new Array(...result.map((e) => e.groups.requirementId));
+}
+
+function getRequirementDescription(requirementId, requirementsRaw) {
+    const requirement = requirementsRaw[requirementId];
+    const subRequirementIds = getSubRequirementIds(requirement);
+    if (subRequirementIds.length === 0) {
+        return requirement.description;
+    }
+    console.log("Building sub-requirement description for " + requirementId);
+    return requirement.description + subRequirementIds
+        .map((subRequirementId) => requirementsRaw[subRequirementId].description)
+        .join(" ");
 }
 
 async function go() {
@@ -83,10 +97,8 @@ async function go() {
         getSingletonData(db, "db-requirements"),
         getSingletonData(db, "db-tallies"),
     ]);
+    console.log("talliesRaw");
     console.log(talliesRaw);
-
-    // We use the requirement ID as a unique identifier of the requirement but do not assume anything about its syntax,
-    // ie how it relates to the group ID, badge ID or requirement.
 
     // A map from requirement ID to tally ID and required count.
     const autocompletionRequirements = new Map();
@@ -100,12 +112,26 @@ async function go() {
             requiredCount: result.groups.requiredCount,
         });
     });
+    console.log("autocompletionRequirements");
     console.log(autocompletionRequirements);
 
+    // Identify sub-requirements so we can skip those below.
+    const subRequirementIds = new Set(Object.values(requirementsRaw)
+        .filter((requirement) => requirement.subreqlogic)
+        .map(getSubRequirementIds)
+        .flat()
+    );
+    console.log("subRequirementIds");
+    console.log(subRequirementIds);
+
     // A map from OAS badge group ID to a map from level to a Set of requirement IDs.
+    console.log("requirementsRaw");
     console.log(requirementsRaw);
     const oasRequirementsMapUnsorted = new Map();
     Object.values(requirementsRaw).forEach((requirement) => {
+        if (subRequirementIds.has(requirement.requirementid)) {
+            return;
+        }
         const result = OAS_BADGE_ID_REGEX.exec(requirement.badgeid);
         if (result === null) {
             return;
@@ -120,21 +146,17 @@ async function go() {
             level,
             () => new Set()).add(requirement.requirementid);
     });
+    console.log("oasRequirementsMapUnsorted");
     console.log(oasRequirementsMapUnsorted);
     const oasRequirementsMap = new Map();
     Array.from(oasRequirementsMapUnsorted.keys()).toSorted().forEach((groupId) => {
         Array.from(oasRequirementsMapUnsorted.get(groupId).keys()).toSorted().forEach((level) => {
             getOrCreate(oasRequirementsMap, groupId, () => new Map())
-                .set(level, new Set(Array.from(oasRequirementsMapUnsorted.get(groupId).get(level)).toSorted((a, b) => {
-                    const aParts = parseRequirement(requirementsRaw[a].requirement);
-                    const bParts = parseRequirement(requirementsRaw[b].requirement);
-                    if (aParts.numericPart === bParts.numericPart) {
-                        return aParts.alphaPart.localeCompare(bParts.alphaPart);
-                    }
-                    return aParts.numericPart - bParts.numericPart;
-                })));
+                .set(level, new Set(Array.from(oasRequirementsMapUnsorted.get(groupId).get(level)).toSorted(
+                    (a, b) => requirementsRaw[a].requirement - requirementsRaw[b].requirement)));
         });
     });
+    console.log("oasRequirementsMap");
     console.log(oasRequirementsMap);
 
     // A list of members.
@@ -145,6 +167,7 @@ async function go() {
             member.role === 10 &&
             member.status === 1 &&
             true);
+    console.log("youthMembers");
     console.log(youthMembers);
 
     // A map from member ID to a map from OAS group ID to a map from level to a set of IDs of requirements not
@@ -172,6 +195,7 @@ async function go() {
             });
         });
     });
+    console.log("oasRequirementsNotCompleted");
     console.log(oasRequirementsNotCompleted);
 
     let table = document.createElement("table");
@@ -213,7 +237,7 @@ async function go() {
         levelToBadge.forEach((requirementIds, level) => {
             requirementIds.forEach((requirementId) => {
                 const x = td(requirementsRaw[requirementId].requirement);
-                x.title = requirementsRaw[requirementId].description;
+                x.title = getRequirementDescription(requirementId, requirementsRaw);
                 requirementRow.appendChild(x);
             });
         });
