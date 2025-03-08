@@ -1,8 +1,8 @@
 // TODO
-// - fix widths
 // - lock row/column
 // - Add to reports page as link
 // - switch from member ID to person ID as key?
+// - Add reward total per Cub
 
 const OAS_BADGE_GROUPS = {
     verticalskills: "Vertical Skills",
@@ -29,7 +29,7 @@ const HIGHLIGHT_RGB = [76, 146, 186];
 const WHITE_RGB = [255, 255, 255];
 
 function td(x) {
-    let td = document.createElement("td");
+    const td = document.createElement("td");
     td.textContent = x;
     return td;
 }
@@ -227,14 +227,15 @@ async function go() {
     const table = document.createElement("table");
     table.className = "oas";
 
-    table.appendChild(colgroup(1));  // Name
+    table.appendChild(colgroup(1));
     oasRequirementsMap.forEach((levelToBadge) => {
         levelToBadge.forEach((requirementIds) => {
             table.appendChild(colgroup(requirementIds.size));
         });
     });
 
-    const oasSkillsRowGroup = document.createElement("tbody");
+    const headerRowGroup = document.createElement("tbody");
+    headerRowGroup.className = "header";
 
     const badgeGroupNameRow = document.createElement("tr");
     badgeGroupNameRow.appendChild(td(""));  // Name
@@ -245,7 +246,7 @@ async function go() {
             .reduce((a, b) => a + b, 0);
         badgeGroupNameRow.appendChild(td1)
     });
-    oasSkillsRowGroup.appendChild(badgeGroupNameRow);
+    headerRowGroup.appendChild(badgeGroupNameRow);
 
     const levelRow = document.createElement("tr");
     levelRow.appendChild(td("")); // Name
@@ -256,7 +257,7 @@ async function go() {
             levelRow.appendChild(tdx);
         });
     });
-    oasSkillsRowGroup.appendChild(levelRow);
+    headerRowGroup.appendChild(levelRow);
 
     const requirementRow = document.createElement("tr");
     requirementRow.appendChild(td("")); // Name
@@ -269,12 +270,13 @@ async function go() {
             });
         });
     });
-    oasSkillsRowGroup.appendChild(requirementRow);
-    table.appendChild(oasSkillsRowGroup);
+    headerRowGroup.appendChild(requirementRow);
+    table.appendChild(headerRowGroup);
 
     const summaryRowGroup = document.createElement("tbody");
+    summaryRowGroup.className = "summary";
 
-    let potentialRow = document.createElement("tr");
+    const potentialRow = document.createElement("tr");
     const potentialTd = td("Potential");
     potentialTd.title = "The number of Cubs that have not completed this requirement";
     potentialRow.appendChild(potentialTd);
@@ -292,7 +294,7 @@ async function go() {
     });
     summaryRowGroup.appendChild(potentialRow);
 
-    let rewardRow = document.createElement("tr");
+    const rewardRow = document.createElement("tr");
     const rewardTd =td("Reward");
     rewardTd.title = "The number of Cubs that will complete this OAS level if they complete this requirement"
     rewardRow.appendChild(rewardTd);
@@ -315,7 +317,7 @@ async function go() {
     youthMemberIdsMap.forEach((memberIds, year) => {
         const yearRowGroup = document.createElement("tbody");
         memberIds.forEach((memberId) => {
-            let tr = document.createElement("tr");
+            const tr = document.createElement("tr");
             tr.appendChild(td(getName(membersRaw[memberId])));
             oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
                 levelToBadge.forEach((requirementIds, level) => {
