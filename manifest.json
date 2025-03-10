@@ -8,6 +8,7 @@
   },
   "content_scripts": [
     {
+      "world": "MAIN",
       "matches": ["https://scoutstracker.ca/*"],
       "js": ["content_script.js"],
       "css": ["content_script.css"]

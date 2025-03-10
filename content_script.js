@@ -1,8 +1,10 @@
 // TODO
+// - update colors to match website
 // - lock row/column
-// - Add to reports page as link
 // - switch from member ID to person ID as key?
 // - Add reward total per Cub
+// - Add key
+// - Fix table border mode to not overlap cells
 
 const OAS_BADGE_GROUPS = {
     verticalskills: "Vertical Skills",
@@ -295,7 +297,7 @@ async function go() {
     summaryRowGroup.appendChild(potentialRow);
 
     const rewardRow = document.createElement("tr");
-    const rewardTd =td("Reward");
+    const rewardTd = td("Reward");
     rewardTd.title = "The number of Cubs that will complete this OAS level if they complete this requirement"
     rewardRow.appendChild(rewardTd);
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
@@ -339,15 +341,37 @@ async function go() {
         });
         table.appendChild(yearRowGroup);
     });
-
-    document.body.appendChild(table);
-
-    setTimeout(() => {
-        console.log("clearing");
-        document.getElementById("startpage").className = "";
-        document.body.style.setProperty("overflow-x", "auto");
-        document.body.style.setProperty("overflow-y", "auto");
-    }, 6_000);
+    return table;
 }
 
-go();
+function prep() {
+    // Clone Reports > History because it is simple.
+    const oasSummary = document.getElementById("history").cloneNode(true);
+    console.log(document.getElementById("history"));
+    oasSummary.id = "oas-summary";
+    // Update the title
+    oasSummary.getElementsByTagName("div").item(0).getElementsByTagName("h1").item(0).textContent = "OAS Summary";
+    document.body.appendChild(oasSummary);
+
+    const ul = document
+        .getElementById("reports")
+        .getElementsByClassName("page-content").item(0)
+        .getElementsByTagName("div").item(1)
+        .getElementsByTagName("ul").item(0);
+    const li = ul.getElementsByTagName("li").item(0).cloneNode(true);
+    const a = li.getElementsByTagName("a").item(0);
+    a.setAttribute("onclick", "show();");
+    a.textContent = "OAS Summary"
+    ul.appendChild(li);
+}
+
+async function show() {
+    resetUpPoint("#oas-summary")
+    const content = document.getElementById("oas-summary")
+        .getElementsByClassName("page-content")
+        .item(0);
+    content.innerHTML = "";
+    content.appendChild(await go());
+}
+
+prep();
