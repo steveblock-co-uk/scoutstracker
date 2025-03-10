@@ -27,5 +27,6 @@ table.oas tbody tr td.all-completed {
 }
 
 table.oas tbody tr td.sole-remaining {
-    background-color: rgb(76, 146, 186);
+    outline: solid 5px rgb(76, 146, 186);
+    outline-offset: -5px;
 }
