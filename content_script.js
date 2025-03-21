@@ -1,5 +1,4 @@
 // TODO
-// - update colors to match website
 // - lock row/column
 // - switch from member ID to person ID as key?
 // - Add reward total per Cub
@@ -27,7 +26,7 @@ const OAS_BADGE_ID_REGEX = /(?<groupId>[a-z]+)(?<level>[1-9])/;
 const TALLY_REGEX = /tally:(?<tallyId>[a-z\d\.]+)-(?<requiredCount>\d+)/;
 const SUB_REQUIREMENT_REGEX = /requirement:(?<requirementId>[a-z\d\.]+)/g
 
-const HIGHLIGHT_RGB = [76, 146, 186];
+const HIGHLIGHT_RGB = [30, 102, 133];  // Based on #195670 used in site
 const WHITE_RGB = [255, 255, 255];
 
 function td(x) {

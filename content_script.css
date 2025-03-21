@@ -19,11 +19,11 @@ table.oas tbody tr td:first-child {
 }
 
 table.oas tbody tr td.completed {
-    background-color: rgb(215, 227, 200);
+    background-color: rgb(183, 200, 123);
 }
 
 table.oas tbody tr td.all-completed {
-    background-color: rgb(190, 210, 170);
+    background-color: rgb(152, 175, 72);  /* based on var(--color-background-divider); */
 }
 
 table.oas tbody tr td.sole-remaining {
