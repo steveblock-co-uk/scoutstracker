@@ -1,9 +1,9 @@
 // TODO
-// - lock row/column
 // - switch from member ID to person ID as key?
 // - Add reward total per Cub
 // - Add key
 // - Fix table border mode to not overlap cells
+// - Fix table border during sticky scroll
 
 const OAS_BADGE_GROUPS = {
     verticalskills: "Vertical Skills",
@@ -33,6 +33,12 @@ function td(x) {
     const td = document.createElement("td");
     td.textContent = x;
     return td;
+}
+
+function th(x) {
+    const th = document.createElement("th");
+    th.textContent = x;
+    return th;
 }
 
 function promisifyRequest(request) {
@@ -239,9 +245,9 @@ async function go() {
     headerRowGroup.className = "header";
 
     const badgeGroupNameRow = document.createElement("tr");
-    badgeGroupNameRow.appendChild(td(""));  // Name
+    badgeGroupNameRow.appendChild(th(""));  // Name
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
-        const td1 = td(OAS_BADGE_GROUPS[oasBadgeGroupName]);
+        const td1 = th(OAS_BADGE_GROUPS[oasBadgeGroupName]);
         td1.colSpan = levelToBadge.values()
             .map((requirementIds) => requirementIds.size)
             .reduce((a, b) => a + b, 0);
@@ -250,10 +256,10 @@ async function go() {
     headerRowGroup.appendChild(badgeGroupNameRow);
 
     const levelRow = document.createElement("tr");
-    levelRow.appendChild(td("")); // Name
+    levelRow.appendChild(th("")); // Name
     oasRequirementsMap.forEach((levelToBadge) => {
         levelToBadge.forEach((requirementIds, level) => {
-            const tdx = td(level);
+            const tdx = th(level);
             tdx.colSpan = requirementIds.size;
             levelRow.appendChild(tdx);
         });
@@ -261,11 +267,11 @@ async function go() {
     headerRowGroup.appendChild(levelRow);
 
     const requirementRow = document.createElement("tr");
-    requirementRow.appendChild(td("")); // Name
+    requirementRow.appendChild(th("")); // Name
     oasRequirementsMap.forEach((levelToBadge) => {
         levelToBadge.forEach((requirementIds) => {
             requirementIds.forEach((requirementId) => {
-                const x = td(requirementsRaw[requirementId].requirement);
+                const x = th(requirementsRaw[requirementId].requirement);
                 x.title = getRequirementDescription(requirementId, requirementsRaw);
                 requirementRow.appendChild(x);
             });
@@ -275,12 +281,12 @@ async function go() {
     table.appendChild(headerRowGroup);
 
     const summaryRowGroup = document.createElement("tbody");
-    summaryRowGroup.className = "summary";
+    summaryRowGroup.className = "content";
 
     const potentialRow = document.createElement("tr");
-    const potentialTd = td("Potential");
-    potentialTd.title = "The number of Cubs that have not completed this requirement";
-    potentialRow.appendChild(potentialTd);
+    const potentialTh = th("Potential");
+    potentialTh.title = "The number of Cubs that have not completed this requirement";
+    potentialRow.appendChild(potentialTh);
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         levelToBadge.forEach((requirementIds, level) => {
             requirementIds.forEach((requirementId) => {
@@ -296,9 +302,9 @@ async function go() {
     summaryRowGroup.appendChild(potentialRow);
 
     const rewardRow = document.createElement("tr");
-    const rewardTd = td("Reward");
-    rewardTd.title = "The number of Cubs that will complete this OAS level if they complete this requirement"
-    rewardRow.appendChild(rewardTd);
+    const rewardTh = th("Reward");
+    rewardTh.title = "The number of Cubs that will complete this OAS level if they complete this requirement"
+    rewardRow.appendChild(rewardTh);
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         levelToBadge.forEach((requirementIds, level) => {
             requirementIds.forEach((requirementId) => {
@@ -317,9 +323,10 @@ async function go() {
 
     youthMemberIdsMap.forEach((memberIds, year) => {
         const yearRowGroup = document.createElement("tbody");
+        yearRowGroup.className = "content";
         memberIds.forEach((memberId) => {
             const tr = document.createElement("tr");
-            tr.appendChild(td(getName(membersRaw[memberId])));
+            tr.appendChild(th(getName(membersRaw[memberId])));
             oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
                 levelToBadge.forEach((requirementIds, level) => {
                     requirementIds.forEach((requirementId) => {

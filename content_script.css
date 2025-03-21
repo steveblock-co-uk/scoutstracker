@@ -1,21 +1,43 @@
 table.oas {
     border-collapse: collapse;
     background-color: white;
+    white-space: nowrap;
+    text-align: center;
 }
 
 table.oas tbody, table.oas colgroup {
     border: 3px solid black;
 }
 
-table.oas tbody tr td {
+table.oas tbody.content tr th {
     border: 1px solid black;
-    white-space: nowrap;
-    min-width: 20px;
-    text-align: center;
+    padding: 2px 4px;
+    text-align: left;
 }
 
-table.oas tbody tr td:first-child {
-    text-align: left;
+table.oas tbody tr th, table.oas tbody tr td {
+    border: 1px solid black;
+    min-width: 20px;
+}
+
+/* Need to apply stickiness to the complete tbody.header, not individual ths, so the whole trio of rows stays put
+vertically.
+ */
+table.oas tbody.header {
+    position: sticky;
+    top: 0;
+    z-index: 9;
+    background-color: white;
+}
+
+/* Can't use stickiness to constrain tbody.header on left because the element fills the viewport so has to move left.
+So we need to make the th sticky too and constrain it on the left.
+This rule also applies to the regular ths in the body.
+ */
+table.oas tbody.header tr th:first-child, table.oas tbody.content tr th {
+    position: sticky;
+    left: 0;
+    background-color: white;
 }
 
 table.oas tbody tr td.completed {
