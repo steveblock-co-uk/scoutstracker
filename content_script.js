@@ -353,10 +353,22 @@ async function go() {
 function prep() {
     // Clone Reports > History because it is simple.
     const oasSummary = document.getElementById("history").cloneNode(true);
-    console.log(document.getElementById("history"));
     oasSummary.id = "oas-summary";
     // Update the title
-    oasSummary.getElementsByTagName("div").item(0).getElementsByTagName("h1").item(0).textContent = "OAS Summary";
+    oasSummary
+        .getElementsByTagName("div")
+        .item(0)
+        .getElementsByTagName("h1")
+        .item(0)
+        .textContent = "OAS Summary";
+    // Remove the top margin from page content. Not sure why that's here.
+    oasSummary
+        .getElementsByTagName("div")
+        .item(1)
+        .getElementsByClassName("page-content")
+        .item(0)
+        .style
+        .marginTop = "0";
     document.body.appendChild(oasSummary);
 
     const ul = document
