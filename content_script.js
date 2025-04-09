@@ -1,7 +1,6 @@
 // TODO
 // - switch from member ID to person ID as key?
 // - Add reward total per Cub
-// - Add key
 // - Fix table border mode to not overlap cells
 // - Fix table border during sticky scroll
 
@@ -244,7 +243,13 @@ async function go() {
     headerRowGroup.className = "header";
 
     const badgeGroupNameRow = document.createElement("tr");
-    badgeGroupNameRow.appendChild(th(""));  // Name
+    const help = document.createElement("a");
+    help.textContent = "Help !";
+    help.setAttribute("onclick", "showLegend();");
+    const legendHeader = document.createElement("th");
+    legendHeader.rowSpan = 3;
+    legendHeader.appendChild(help);
+    badgeGroupNameRow.appendChild(legendHeader);  // Name
     oasRequirementsMap.forEach((levelToBadge, oasBadgeGroupName) => {
         const td1 = th(OAS_BADGE_GROUPS[oasBadgeGroupName]);
         td1.colSpan = levelToBadge.values()
@@ -255,7 +260,6 @@ async function go() {
     headerRowGroup.appendChild(badgeGroupNameRow);
 
     const levelRow = document.createElement("tr");
-    levelRow.appendChild(th("")); // Name
     oasRequirementsMap.forEach((levelToBadge) => {
         levelToBadge.forEach((requirementIds, level) => {
             const tdx = th(level);
@@ -266,7 +270,6 @@ async function go() {
     headerRowGroup.appendChild(levelRow);
 
     const requirementRow = document.createElement("tr");
-    requirementRow.appendChild(th("")); // Name
     oasRequirementsMap.forEach((levelToBadge) => {
         levelToBadge.forEach((requirementIds) => {
             requirementIds.forEach((requirementId) => {
@@ -349,6 +352,58 @@ async function go() {
     return table;
 }
 
+const POTENTIAL = "The number of Cubs that have not completed this requirement";
+const REWARD = "The number of Cubs that will complete this OAS level if they complete this requirement";
+
+function buildLegend() {
+    const a = document.createElement("a");
+    a.textContent = "Close"
+    a.setAttribute("onclick", "hideLegend();");
+    const p = document.createElement("p");
+    p.textContent = "This table shows the OAS requirements completed by each Cub, grouped by badge and level. "
+        + "Hover over the requirement ID for a description of the requirement.";
+    const table = document.createElement("table");
+    const body = document.createElement("tbody");
+    table.appendChild(body);
+    const completed = document.createElement("div");
+    completed.className = "completed"
+    body.appendChild(tr(completed, "Requirement completed"));
+    const allCompleted = document.createElement("div");
+    allCompleted.className = "all-completed"
+    body.appendChild(tr(allCompleted, "All requirements in this OAS level completed"));
+    const soleRemaining = document.createElement("div");
+    soleRemaining.className = "sole-remaining"
+    body.appendChild(tr(soleRemaining, "Last remaining uncompleted requirement in this OAS level"));
+    body.appendChild(tr("Potential", POTENTIAL));
+    body.appendChild(tr("Reward", REWARD));
+    const legend = document.createElement("div");
+    legend.id = "oas-summary-legend";
+    legend.style.display = "none";
+    const mask = document.createElement("div");
+    mask.className = "mask"
+    legend.appendChild(mask);
+    const inner = document.createElement("div");
+    inner.className = "inner"
+    legend.appendChild(inner);
+    inner.appendChild(a);
+    inner.appendChild(p);
+    inner.appendChild(table);
+    return legend;
+}
+
+function tr(a, b) {
+    const x = document.createElement("tr");
+    const th = document.createElement("th");
+    if (a instanceof Node) {
+        th.appendChild(a);
+    } else {
+        th.textContent = a;
+    }
+    x.appendChild(th);
+    x.appendChild(td(b));
+    return x
+}
+
 function prep() {
     // Clone Reports > History because it is simple.
     const oasSummary = document.getElementById("history").cloneNode(true);
@@ -387,8 +442,19 @@ async function show() {
     const content = document.getElementById("oas-summary")
         .getElementsByClassName("page-content")
         .item(0);
+    // TODO: Don't replace the legend!
     content.innerHTML = "";
     content.appendChild(await go());
+    // We put this after the table to avoid complexity with the stacking contexts created by the sticky positions in the table.
+    content.appendChild(buildLegend());
+}
+
+function showLegend() {
+    document.getElementById("oas-summary-legend").style.display = null;
+}
+
+function hideLegend() {
+    document.getElementById("oas-summary-legend").style.display = "none";
 }
 
 prep();

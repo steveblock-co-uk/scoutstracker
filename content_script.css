@@ -60,3 +60,57 @@ div#oas-summary div.page-content .sole-remaining {
     outline: solid 5px rgb(76, 146, 186);
     outline-offset: -5px;
 }
+
+div#oas-summary-legend {
+    position: fixed;
+    top: 0;
+    left:0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    /* To appear in front of header */
+    z-index: 1001;
+}
+
+div#oas-summary-legend div.mask {
+    position: absolute;
+    background-color: black;
+    opacity: 70%;
+    width: 100%;
+    height: 100%;
+}
+
+div#oas-summary-legend div.inner {
+    position: relative;
+    margin: auto;
+    width: 700px;
+    padding: 20px;
+    border: 2px solid black;
+    text-wrap: wrap;
+    text-align: left;
+    background-color: white;
+}
+
+div#oas-summary-legend div.inner p {
+    padding-bottom: 20px;
+}
+
+div#oas-summary-legend table tbody tr td {
+    text-align: left;
+}
+
+div#oas-summary-legend table tbody tr th, div#oas-summary-legend table tbody tr td {
+    padding: 2px 4px;
+}
+
+div#oas-summary-legend table tbody tr th div {
+    width: 20px;
+    height: 20px;
+    margin: auto;
+}
+
+div#oas-summary-legend a {
+    display: block;
+    text-align: right;
+    padding-bottom: 20px;
+}
