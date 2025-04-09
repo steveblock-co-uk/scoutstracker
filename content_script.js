@@ -232,7 +232,6 @@ async function go() {
     console.log(oasRequirementsNotCompleted);
 
     const table = document.createElement("table");
-    table.className = "oas";
 
     table.appendChild(colgroup(1));
     oasRequirementsMap.forEach((levelToBadge) => {

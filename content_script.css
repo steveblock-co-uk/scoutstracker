@@ -1,4 +1,12 @@
-table.oas {
+div#oas-summary div.page-content {
+    cursor: default;
+}
+
+div#oas-summary div.page-content a {
+    cursor: pointer;
+}
+
+div#oas-summary div.page-content table {
     border-collapse: collapse;
     background-color: white;
     white-space: nowrap;
@@ -6,17 +14,16 @@ table.oas {
     margin: 15px;
 }
 
-table.oas tbody, table.oas colgroup {
+div#oas-summary div.page-content table tbody, div#oas-summary div.page-content table colgroup {
     border: 3px solid black;
 }
 
-table.oas tbody.content tr th {
-    border: 1px solid black;
+div#oas-summary div.page-content table tbody.content tr th {
     padding: 2px 4px;
     text-align: left;
 }
 
-table.oas tbody tr th, table.oas tbody tr td {
+div#oas-summary div.page-content table tbody tr th, div#oas-summary div.page-content table tbody tr td {
     border: 1px solid black;
     min-width: 20px;
 }
@@ -24,7 +31,7 @@ table.oas tbody tr th, table.oas tbody tr td {
 /* Need to apply stickiness to the complete tbody.header, not individual ths, so the whole trio of rows stays put
 vertically.
  */
-table.oas tbody.header {
+div#oas-summary div.page-content table tbody.header {
     position: sticky;
     top: 0;
     z-index: 9;
@@ -35,21 +42,21 @@ table.oas tbody.header {
 So we need to make the th sticky too and constrain it on the left.
 This rule also applies to the regular ths in the body.
  */
-table.oas tbody.header tr th:first-child, table.oas tbody.content tr th {
+div#oas-summary div.page-content table tbody.header tr:first-child th:first-child, div#oas-summary div.page-content table tbody.content tr th {
     position: sticky;
     left: 0;
     background-color: white;
 }
 
-table.oas tbody tr td.completed {
+div#oas-summary div.page-content .completed {
     background-color: rgb(183, 200, 123);
 }
 
-table.oas tbody tr td.all-completed {
+div#oas-summary div.page-content .all-completed {
     background-color: rgb(152, 175, 72);  /* based on var(--color-background-divider); */
 }
 
-table.oas tbody tr td.sole-remaining {
+div#oas-summary div.page-content .sole-remaining {
     outline: solid 5px rgb(76, 146, 186);
     outline-offset: -5px;
 }
